@@ -1,0 +1,159 @@
+Sub::ParamFrame                                               version   0.01
+
+- Supply key alias and defaults of named arguments.
+============================================================================
+
+SYNOPSIS
+        use Sub::ParamFrame ':all';
+
+        sub myFunc
+        {
+            # Define the rule how named arguments shell be processed
+            pfrule
+              'D' => [...,Name(i)=>DefVal(i),...], # assign default key-value  association.
+              'M' => [ sub {...}, P(1),...P(k) ];  # keys mask function and fixed arguments
+
+            # access a certain count of positional arguments here
+            my @PARGS = splice @_,0,N;
+
+            # Load named arguments. That is create a hash according to arguments
+            # passed to pfrule. This hash also contains default arguments
+
+            my $arg = pfload @_;
+
+            # access argument or default of name NAME
+            do_something_with $arg->{NAME};
+            ......
+            # or likewise access key NAME, in addition erase it from $arg
+            do_something_with delete $arg->{NAME};
+            .......
+            # could also be used in list context accessing multiple arguments ..
+            ($v1,$v2,...) = delete @$arg{NAME1,NAME2,...};
+            ....
+        }   ##myFunc
+
+DESCRIPTION
+    A couple of modules already deal with named parameters and default
+    values, see
+    Sub::Parameters,Sub::NamedParams,Sub::Declaration,Perl6::Parameters.
+
+    This solution pursues another scope of usability, covers distinct
+    features and uses another syntactic approach.
+
+    Named parameters are identified by a hash built from the argument vector
+    @_. The generation and behavior of this hash will be controlled by a
+    rule. If one subroutine "myFunc()" uses such a rule, this rule appears
+    as a command within the subroutine's body. The rule lays down one ore
+    both of two properties:
+
+    1. a name-value-association of defaults and 2. an alias mapping for
+    argument names.
+
+    Once this rule is passed by call of "pfrule" from the first invocation
+    of "myFunc", the generation of the hash by the "pfload" function shell
+    follow this rule at once and during future calls.
+
+    "pfrule" appears before "pfload" and will be executed only once, only
+    when the calling subroutine runs first time.
+
+    Two named optional arguments are defined for "pfrule", neither must be
+    present.
+
+   Arguments of "pfrule"
+            'D' => [...,Name(i)=>DefVal(i),...]
+
+    Defines a default key-value-association. "pfload" stores this
+    association before arguments usually from @_ advance and may override
+    some default values.
+
+            'M' => $mask                      where  $mask = sub {...}
+            'M' => [ $mask, P(1),...P(m) ]    or           = \&fmask
+
+    Keys mask function and optionally fixed arguments. If 'M' is omitted
+    "pfload" shall return just a hash. If 'M' is present it causes "pfload"
+    to return a hash tied to class "Tie::Hash::KeysMask" such that each
+    access to the hash triggers a key translation:
+
+             $k   =>   $mask->($k,P(1),...P(m))
+
+    Instead of a CODE "'M'=>$mask" could take one of the following
+    particular values
+
+            'M' => 'lc'   or  'M' => 'uc'   or  'M' => \%T
+
+            which will be translated into a CODE as follows
+
+            'lc' => sub { lc $_[0] }        # omit case of character distinction
+            'uc' => sub { uc $_[0] }        # with 'uc' or 'lc' translations
+            \%T  => sub { exists $T{$_[0]} ? $T{$_[0]} : $_[0]}
+                                            # hash %T defines aliases
+
+    Contrary to other approaches to named arguments, one may choose freely
+    the position of the first named argument within @_. Any amount of @_ may
+    be shifted onto positional parameters before the command "pfload @_"
+    takes the remaining pairs of key=>value. Of course arguments different
+    from @_ are also allowed behind "pfload".
+
+DEPENDENCIES
+    "Sub::ParamFrame" is not a class, however it relies on a class package
+    "Sub::ParamLoader" which inherits from "Tie::Hash::KeysMask".
+
+CAVEATS
+    As described in Tie::Hash::KeysMask one must take care, that the mask
+    function (specified by 'M'=>) fit to some restriction.
+
+EXAMPLE
+        use Sub::ParamFrame ':all';
+
+        my @seasons = qw(spring summer autumn winter);
+
+        sub actionA             # Parameter names @seasons
+        {                       # case-insensitive by option 'M'=>'c'.
+            my $person = shift; # first argument $person passed without a parameter name
+            pfrule 'M' => 'uc', 'D' => [qw(winter SKI summer SWIM)];
+            my $arg = pfload @_;
+            my $pname = sprintf '+%12s does ',$person;
+            my $actions = join ', ',map sprintf('%s:%s',$_,$arg->{$_}),@seasons;
+            $pname.$actions."\n";
+        }
+
+        sub actionB      # Parameter names (case-insensitive, shortable up to length 2)
+        {                #      sp[ring], su[mmer], au[tumn], wi[nter]
+            my $person = shift; # first argument passed without a name
+            pfrule
+                'M' =>    # match any left substring of a season-name with length
+                sub       # at least 2, ignoring case of characters
+                {
+                    my $ikl  = lc(shift);      my $ikl2 = substr $ikl,0,2;
+                    my $res  = {qw(sp spring su summer au autumn wi winter)}->{$ikl2};
+                    return undef unless
+                    ( defined $res)  && ($ikl eq substr($res,0,length $ikl));
+                    $res;
+                },
+            'D' => [qw(wi SNOWBOARD spr BIKE su WATERJUMP aut EAT)];
+
+            my $arg = pfload @_;
+            my $pname = sprintf '-%12s does ',$person;
+            my $actions = join ', ',map sprintf('%s:%s',$_,$arg->{$_}),@seasons;
+            $pname.$actions."\n";
+        }
+
+        # For ease visual distinction default values were chosen in uppercase
+        print "Default values uppercase ('D'=>[.. 'winter'=>'SKI'...]), others lowercase!\n";
+        print '-'x74,"\n";
+        print actionA qw(Alice Spring run Autumn ride);
+        print actionB qw(Alice Spri   run AU     ride);
+        print actionA qw(Ann spring sing SUMMER dive AuTumn study);
+        print actionB qw(Ann spr    sing SUM    dive Au     study);
+        print actionA qw(Iris AUTUMN travel WINTER shop Spring marry summer bike);
+        print actionB qw(Iris AUT    travel WIN    shop Spring marry summer bike);
+
+AUTHOR
+    Josef Schönbrunner <j.schoenbrunner@onemail.at>
+
+COPYRIGHT AND LICENSE
+    Copyright (c) 2005 by Josef Schönbrunner This library is free software;
+    you can redistribute it and/or modify it under the same terms as Perl
+    itself, either Perl version 5.8.7 or, at your option, any later version
+    of Perl 5 you may have available.
+
