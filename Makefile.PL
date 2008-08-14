@@ -8,7 +8,7 @@ WriteMakefile(
     PREREQ_PM         => {'Sub::ParamLoader'=>0.01},
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/Sub/ParamFrame.pm', # retrieve abstract from module
-       AUTHOR         => 'Josef Schoenbrunner <j.schoenbrunner@onemail.at>') : ()
+       AUTHOR         => 'Josef Schoenbrunner <j.schoenbrunner@schule.at>') : (),
        ABSTRACT       => 'Supply key alias and defaults of named arguments.',
-    ),
+    )
   );

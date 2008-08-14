@@ -2,3 +2,5 @@ Revision history for Perl extension Sub::ParamFrame.
 
 0.01  Date 2005-Dec-29 18:19:50
     - original version; created
+0.02  Date 2008-Aug-14  9:00:00
+    - provide a missing comma in makefile.pl
