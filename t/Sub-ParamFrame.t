@@ -1,4 +1,4 @@
-use Test::More tests=>20;
+use Test::More tests=>11;
 BEGIN { use_ok('Sub::ParamFrame', qw(:all)) };
 
     my @seasons = qw(spring summer autumn winter);
