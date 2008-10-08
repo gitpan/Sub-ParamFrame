@@ -10,6 +10,5 @@ WriteMakefile(
       (ABSTRACT_FROM  => 'lib/Sub/ParamFrame.pm', # retrieve abstract from module
        AUTHOR         => 'Josef Schoenbrunner <j.schoenbrunner@schule.at>') : (),
        ABSTRACT       => 'Supply key alias and defaults of named arguments.',
-       DIRFILESEP => '<myDIRFILESEP>',
     )
   );
